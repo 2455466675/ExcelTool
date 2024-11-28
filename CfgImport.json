@@ -1,5 +1,6 @@
 {
     "excelPath":"./Excel/(整个excel配置的根文件夹路径)",
+    "coreFileOutputPaht":"../Project 001/Assets/Scripts/Config/Core(生成的C#类存放位置)",
     "csFileOutputPaht":"../Project 001/Assets/Scripts/Config/Model(生成的C#类存放位置)",
     "cfgFileOutputPaht":"../Project 001/Assets/StreamingAssets(生成的配置字节文件的导出位置)",
     "language":"language/(游戏语言表文件夹，里面所有的表导出的时候会合并为一个)",
