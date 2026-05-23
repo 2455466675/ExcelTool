@@ -11,6 +11,11 @@
         public string encryptKey = "";
 
         /// <summary>
+        /// 加密算法（可选，默认为XOR）
+        /// </summary>
+        public string encryptAlgorithm = "XOR";
+
+        /// <summary>
         /// 合并导出的文件夹列表
         /// </summary>
         public List<MergedFolderItem>? mergedFolders;
@@ -57,6 +62,28 @@
         /// </summary>
         [Newtonsoft.Json.JsonIgnore]
         public bool IsEncrypt => !string.IsNullOrEmpty(encryptKey);
+
+        /// <summary>
+        /// 获取加密算法枚举
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore]
+        public EncryptionAlgorithm EncryptionAlgorithm
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(encryptAlgorithm))
+                    return EncryptionAlgorithm.XOR;
+
+                return encryptAlgorithm.ToUpper() switch
+                {
+                    "NONE" => EncryptionAlgorithm.None,
+                    "XOR" => EncryptionAlgorithm.XOR,
+                    "AES" => EncryptionAlgorithm.AES,
+                    "SHIFT" => EncryptionAlgorithm.Shift,
+                    _ => EncryptionAlgorithm.XOR
+                };
+            }
+        }
     }
 
     internal class MergedFolderItem

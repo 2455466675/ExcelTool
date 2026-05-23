@@ -61,7 +61,7 @@ namespace ExcelTool
 
                 // 6. 写入二进制文件
                 string tempBytesFile = Path.Combine(tempBytesPath, "cfg.bytes");
-                CfgBinaryWriter.Write(allValues, tempBytesFile, model.encryptKey);
+                CfgBinaryWriter.Write(allValues, tempBytesFile, model.encryptKey, model.EncryptionAlgorithm);
 
                 // 7. 生成完成，清空目标目录并移动文件
                 string targetCorePath = Path.Combine(model.scriptOutputPath, "Core");

@@ -1,5 +1,6 @@
 {
     "encryptKey": "",
+    "encryptAlgorithm": "XOR",
     "mergedFolders": [
         {
             "folder": "language/",

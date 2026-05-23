@@ -10,7 +10,7 @@ namespace ExcelTool
         /// <summary>
         /// 将配置数据写入二进制字节文件
         /// </summary>
-        public static void Write(List<(string, string)> values, string filePath, string encryptKey = "")
+        public static void Write(List<(string, string)> values, string filePath, string encryptKey = "", EncryptionAlgorithm algorithm = EncryptionAlgorithm.XOR)
         {
             string? dir = Path.GetDirectoryName(filePath);
             if (dir != null && !Directory.Exists(dir))
@@ -67,8 +67,8 @@ namespace ExcelTool
             // 如果配置了加密密钥，进行加密
             if (!string.IsNullOrEmpty(encryptKey))
             {
-                data = CfgEncryptor.Encrypt(data, encryptKey);
-                Console.WriteLine($"  已加密（密钥长度: {Encoding.UTF8.GetByteCount(encryptKey)}字节）");
+                data = CfgEncryptor.Encrypt(data, encryptKey, algorithm);
+                Console.WriteLine($"  已加密（算法: {algorithm}, 密钥长度: {Encoding.UTF8.GetByteCount(encryptKey)}字节）");
             }
 
             File.WriteAllBytes(filePath, data);

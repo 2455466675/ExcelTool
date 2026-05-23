@@ -10,6 +10,7 @@ namespace ExcelToolGUI
         private TextBox _txtScriptOutput = null!;
         private TextBox _txtBytesOutput = null!;
         private TextBox _txtNamespace = null!;
+        private ComboBox _cmbEncryptAlgorithm = null!;
         private Button _btnExport = null!;
         private TextBox _txtLog = null!;
         private Label _lblStatus = null!;
@@ -27,7 +28,7 @@ namespace ExcelToolGUI
         private void InitializeComponent()
         {
             Text = "ExcelTool 配置导出工具";
-            Size = new Size(650, 520);
+            Size = new Size(650, 550);
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
@@ -54,6 +55,21 @@ namespace ExcelToolGUI
             Controls.Add(lblNs);
             _txtNamespace = new TextBox { Location = new Point(15 + labelWidth, y), Size = new Size(200, 23), Text = "GameConfig" };
             Controls.Add(_txtNamespace);
+
+            y += 30;
+
+            // 加密算法
+            var lblEncryptAlgo = new Label { Text = "加密算法:", Location = new Point(15, y + 3), AutoSize = true };
+            Controls.Add(lblEncryptAlgo);
+            _cmbEncryptAlgorithm = new ComboBox
+            {
+                Location = new Point(15 + labelWidth, y),
+                Size = new Size(200, 23),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            _cmbEncryptAlgorithm.Items.AddRange(new object[] { "无加密", "异或加密(XOR)", "AES加密", "位移加密(Shift)" });
+            _cmbEncryptAlgorithm.SelectedIndex = 1; // 默认选择异或加密
+            Controls.Add(_cmbEncryptAlgorithm);
 
             // 导出按钮
             _btnExport = new Button
@@ -190,11 +206,12 @@ namespace ExcelToolGUI
                         return;
                     }
 
-                    // 从GUI填充路径
+                    // 从GUI填充路径和设置
                     model.excelPath = Path.GetFullPath(_txtExcelPath.Text.Trim());
                     model.scriptOutputPath = Path.GetFullPath(_txtScriptOutput.Text.Trim());
                     model.bytesOutputPath = Path.GetFullPath(_txtBytesOutput.Text.Trim());
                     model.ns = _txtNamespace.Text.Trim();
+                    model.encryptAlgorithm = GetSelectedAlgorithm();
 
                     Console.WriteLine($"命名空间: {model.Namespace}");
                     Console.WriteLine($"Excel路径: {model.excelPath}");
@@ -231,7 +248,8 @@ namespace ExcelToolGUI
                 ExcelPath = _txtExcelPath.Text,
                 ScriptOutputPath = _txtScriptOutput.Text,
                 BytesOutputPath = _txtBytesOutput.Text,
-                Namespace = _txtNamespace.Text
+                Namespace = _txtNamespace.Text,
+                EncryptAlgorithm = GetSelectedAlgorithm()
             };
             string json = JsonConvert.SerializeObject(settings, Formatting.Indented);
             File.WriteAllText(SettingsPath, json);
@@ -251,8 +269,49 @@ namespace ExcelToolGUI
                 _txtScriptOutput.Text = settings.ScriptOutputPath ?? "";
                 _txtBytesOutput.Text = settings.BytesOutputPath ?? "";
                 _txtNamespace.Text = settings.Namespace ?? "GameConfig";
+                SetSelectedAlgorithm(settings.EncryptAlgorithm);
             }
             catch { /* 设置文件损坏则忽略 */ }
+        }
+
+        #endregion
+
+        #region 加密算法辅助方法
+
+        /// <summary>
+        /// 获取选中的加密算法字符串
+        /// </summary>
+        private string GetSelectedAlgorithm()
+        {
+            return _cmbEncryptAlgorithm.SelectedIndex switch
+            {
+                0 => "NONE",
+                1 => "XOR",
+                2 => "AES",
+                3 => "SHIFT",
+                _ => "XOR"
+            };
+        }
+
+        /// <summary>
+        /// 设置选中的加密算法
+        /// </summary>
+        private void SetSelectedAlgorithm(string? algorithm)
+        {
+            if (string.IsNullOrEmpty(algorithm))
+            {
+                _cmbEncryptAlgorithm.SelectedIndex = 1; // 默认XOR
+                return;
+            }
+
+            _cmbEncryptAlgorithm.SelectedIndex = algorithm.ToUpper() switch
+            {
+                "NONE" => 0,
+                "XOR" => 1,
+                "AES" => 2,
+                "SHIFT" => 3,
+                _ => 1 // 默认XOR
+            };
         }
 
         #endregion
@@ -268,6 +327,7 @@ namespace ExcelToolGUI
         public string? ScriptOutputPath { get; set; }
         public string? BytesOutputPath { get; set; }
         public string? Namespace { get; set; }
+        public string? EncryptAlgorithm { get; set; }
     }
 
     /// <summary>
