@@ -1,0 +1,16 @@
+# Build outputs
+**/bin/
+**/obj/
+
+# Publish outputs
+publish/
+publish-gui/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# OS files
+Thumbs.db
+.DS_Store
