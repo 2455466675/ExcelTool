@@ -39,7 +39,9 @@ namespace ExcelTool
                 {
                     foreach (var mergedItem in model.mergedFolders)
                     {
-                        var (values, keyType) = ProcessMergedFolder(model, mergedItem, ns, tempModelPath);
+                        var result = ProcessMergedFolder(model, mergedItem, ns, tempModelPath);
+                        if (result == null) continue;
+                        var (values, keyType) = result.Value;
                         allValues.AddRange(values);
                         allTypes.Add((mergedItem.type, keyType));
                     }
@@ -50,7 +52,9 @@ namespace ExcelTool
                 {
                     foreach (var singleItem in model.singleFiles)
                     {
-                        var (values, keyType) = ProcessSingleFile(model, singleItem, ns, tempModelPath);
+                        var result = ProcessSingleFile(model, singleItem, ns, tempModelPath);
+                        if (result == null) continue;
+                        var (values, keyType) = result.Value;
                         allValues.AddRange(values);
                         allTypes.Add((singleItem.type, keyType));
                     }
@@ -93,7 +97,7 @@ namespace ExcelTool
         /// <summary>
         /// 处理合并导出的文件夹
         /// </summary>
-        private static (List<(string, string)> values, string keyType) ProcessMergedFolder(
+        private static (List<(string, string)> values, string keyType)? ProcessMergedFolder(
             CfgModel model, MergedFolderItem item, string ns, string modelOutputPath)
         {
             var values = new List<(string, string)>();
@@ -102,10 +106,7 @@ namespace ExcelTool
             if (!Directory.Exists(folderPath))
             {
                 Console.WriteLine($"警告：合并文件夹不存在，跳过 - {folderPath}");
-                var emptyHead = TypeHelper.EnsureIdField(new List<(string, string)>());
-                CodeGenerator.GenerateCfgCs(item.type, modelOutputPath, emptyHead, ns);
-                values.Add(("int", "0"));
-                return (values, TypeHelper.GetKeyType(emptyHead));
+                return null;
             }
 
             string[] excelFiles = Directory.GetFiles(folderPath, "*.xlsx", SearchOption.AllDirectories)
@@ -114,11 +115,8 @@ namespace ExcelTool
 
             if (excelFiles.Length == 0)
             {
-                Console.WriteLine($"警告：合并文件夹中没有xlsx文件 - {folderPath}");
-                var emptyHead = TypeHelper.EnsureIdField(new List<(string, string)>());
-                CodeGenerator.GenerateCfgCs(item.type, modelOutputPath, emptyHead, ns);
-                values.Add(("int", "0"));
-                return (values, TypeHelper.GetKeyType(emptyHead));
+                Console.WriteLine($"警告：合并文件夹中没有xlsx文件，跳过 - {folderPath}");
+                return null;
             }
 
             // 第一遍：扫描所有文件的表头，合并为统一字段列表
@@ -189,7 +187,7 @@ namespace ExcelTool
         /// <summary>
         /// 处理单个导出的Excel文件
         /// </summary>
-        private static (List<(string, string)> values, string keyType) ProcessSingleFile(
+        private static (List<(string, string)> values, string keyType)? ProcessSingleFile(
             CfgModel model, SingleFileItem item, string ns, string modelOutputPath)
         {
             var values = new List<(string, string)>();
@@ -198,10 +196,7 @@ namespace ExcelTool
             if (!File.Exists(filePath))
             {
                 Console.WriteLine($"警告：Excel文件不存在，跳过 - {filePath}");
-                var emptyHead = TypeHelper.EnsureIdField(new List<(string, string)>());
-                CodeGenerator.GenerateCfgCs(item.type, modelOutputPath, emptyHead, ns);
-                values.Add(("int", "0"));
-                return (values, TypeHelper.GetKeyType(emptyHead));
+                return null;
             }
 
             using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
