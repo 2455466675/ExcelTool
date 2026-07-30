@@ -89,16 +89,39 @@ namespace ExcelTool
         }
 
         /// <summary>
-        /// AES变换
+        /// AES变换（加密时随机生成IV并写入密文头部；解密时从头部提取IV）
         /// </summary>
         private static byte[] AesTransform(byte[] data, string key, bool encrypt)
         {
             using var aes = Aes.Create();
             aes.Key = DeriveKey(key, 32); // 256-bit key
-            aes.IV = DeriveKey(key + "IV", 16); // 128-bit IV
-            
-            using var transform = encrypt ? aes.CreateEncryptor() : aes.CreateDecryptor();
-            return transform.TransformFinalBlock(data, 0, data.Length);
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+
+            if (encrypt)
+            {
+                aes.GenerateIV(); // 随机生成IV
+                using var encryptor = aes.CreateEncryptor();
+                byte[] encrypted = encryptor.TransformFinalBlock(data, 0, data.Length);
+
+                // 将IV和密文合并返回（IV在前16字节）
+                byte[] result = new byte[aes.IV.Length + encrypted.Length];
+                Buffer.BlockCopy(aes.IV, 0, result, 0, aes.IV.Length);
+                Buffer.BlockCopy(encrypted, 0, result, aes.IV.Length, encrypted.Length);
+                return result;
+            }
+            else
+            {
+                // 提取IV（前16字节）
+                byte[] iv = new byte[16];
+                byte[] cipherText = new byte[data.Length - 16];
+                Buffer.BlockCopy(data, 0, iv, 0, 16);
+                Buffer.BlockCopy(data, 16, cipherText, 0, cipherText.Length);
+
+                aes.IV = iv;
+                using var decryptor = aes.CreateDecryptor();
+                return decryptor.TransformFinalBlock(cipherText, 0, cipherText.Length);
+            }
         }
 
         /// <summary>

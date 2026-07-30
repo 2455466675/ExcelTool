@@ -12,6 +12,7 @@ namespace ExcelToolGUI
         private TextBox _txtNamespace = null!;
         private ComboBox _cmbEncryptAlgorithm = null!;
         private Button _btnExport = null!;
+        private Button _btnExportBytes = null!;
         private TextBox _txtLog = null!;
         private Label _lblStatus = null!;
 
@@ -71,7 +72,7 @@ namespace ExcelToolGUI
             _cmbEncryptAlgorithm.SelectedIndex = 1; // 默认选择异或加密
             Controls.Add(_cmbEncryptAlgorithm);
 
-            // 导出按钮
+            // 导出按钮（生成脚本 + 字节文件）
             _btnExport = new Button
             {
                 Text = "导出配置",
@@ -83,6 +84,19 @@ namespace ExcelToolGUI
             };
             _btnExport.Click += BtnExport_Click;
             Controls.Add(_btnExport);
+
+            // 仅生成字节文件按钮（只生成 config.bytes，不生成脚本）
+            _btnExportBytes = new Button
+            {
+                Text = "仅生成Bytes",
+                Location = new Point(btnX - 175, y - 2),
+                Size = new Size(105, 28),
+                BackColor = Color.FromArgb(60, 150, 110),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            _btnExportBytes.Click += BtnExportBytes_Click;
+            Controls.Add(_btnExportBytes);
 
             y += 35;
 
@@ -165,12 +179,27 @@ namespace ExcelToolGUI
 
         private async void BtnExport_Click(object? sender, EventArgs e)
         {
+            await RunExport(bytesOnly: false);
+        }
+
+        private async void BtnExportBytes_Click(object? sender, EventArgs e)
+        {
+            await RunExport(bytesOnly: true);
+        }
+
+        /// <summary>
+        /// 执行导出
+        /// </summary>
+        /// <param name="bytesOnly">为 true 时只生成 config.bytes，不生成脚本（无需脚本输出目录）</param>
+        private async Task RunExport(bool bytesOnly)
+        {
             // 验证输入
             if (string.IsNullOrWhiteSpace(_txtJsonPath.Text))
             { MessageBox.Show("请选择配置文件", "提示"); return; }
             if (string.IsNullOrWhiteSpace(_txtExcelPath.Text))
             { MessageBox.Show("请选择Excel目录", "提示"); return; }
-            if (string.IsNullOrWhiteSpace(_txtScriptOutput.Text))
+            // 仅生成Bytes时不需要脚本输出目录
+            if (!bytesOnly && string.IsNullOrWhiteSpace(_txtScriptOutput.Text))
             { MessageBox.Show("请选择脚本输出目录", "提示"); return; }
             if (string.IsNullOrWhiteSpace(_txtBytesOutput.Text))
             { MessageBox.Show("请选择字节文件输出目录", "提示"); return; }
@@ -185,8 +214,9 @@ namespace ExcelToolGUI
             SaveSettings();
 
             _btnExport.Enabled = false;
+            _btnExportBytes.Enabled = false;
             _txtLog.Clear();
-            _lblStatus.Text = "正在导出...";
+            _lblStatus.Text = bytesOnly ? "正在生成字节文件..." : "正在导出...";
             _lblStatus.ForeColor = Color.Orange;
 
             var logWriter = new TextBoxWriter(_txtLog);
@@ -208,33 +238,39 @@ namespace ExcelToolGUI
 
                     // 从GUI填充路径和设置
                     model.excelPath = Path.GetFullPath(_txtExcelPath.Text.Trim());
-                    model.scriptOutputPath = Path.GetFullPath(_txtScriptOutput.Text.Trim());
+                    if (!bytesOnly)
+                        model.scriptOutputPath = Path.GetFullPath(_txtScriptOutput.Text.Trim());
                     model.bytesOutputPath = Path.GetFullPath(_txtBytesOutput.Text.Trim());
                     model.ns = _txtNamespace.Text.Trim();
                     model.encryptAlgorithm = GetSelectedAlgorithm();
 
                     Console.WriteLine($"命名空间: {model.Namespace}");
                     Console.WriteLine($"Excel路径: {model.excelPath}");
-                    Console.WriteLine($"脚本输出: {model.scriptOutputPath}");
+                    if (!bytesOnly)
+                        Console.WriteLine($"脚本输出: {model.scriptOutputPath}");
                     Console.WriteLine($"字节输出: {model.bytesOutputPath}");
                     Console.WriteLine();
 
-                    Generator.Generate(model);
+                    if (bytesOnly)
+                        Generator.GenerateBytesOnly(model);
+                    else
+                        Generator.Generate(model);
                 });
 
-                _lblStatus.Text = "导出完成";
+                _lblStatus.Text = bytesOnly ? "字节文件生成完成" : "导出完成";
                 _lblStatus.ForeColor = Color.Green;
             }
             catch (Exception ex)
             {
                 _txtLog.AppendText($"\n错误：{ex.Message}\n");
-                _lblStatus.Text = "导出失败";
+                _lblStatus.Text = bytesOnly ? "生成失败" : "导出失败";
                 _lblStatus.ForeColor = Color.Red;
             }
             finally
             {
                 Console.SetOut(originalOut);
                 _btnExport.Enabled = true;
+                _btnExportBytes.Enabled = true;
             }
         }
 
